@@ -12,7 +12,9 @@ User-Friendly Interface: Simple GUI with options to toggle between Dark and Ligh
 Custom Icons: Incorporates PNG icons and logos for a visually enhanced interface.
 
 **Prerequisites**
+
 Python 3.7+
+
 **Required Libraries:**
 
 tkinter (comes with Python)
