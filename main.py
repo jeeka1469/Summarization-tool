@@ -23,7 +23,13 @@ class Summarizer:
         return extractive_summary
 
     def abstractive_summary(self, extractive_summary):
-        abstractive_summary = self.abstractive_summarizer(extractive_summary, max_length=60, min_length=40, do_sample=False)[0]['summary_text']
+        abstractive_summary = self.abstractive_summarizer(extractive_summary, 
+                                                          max_length=150, 
+                                                          min_length=100, 
+                                                          do_sample=True,  # Use sampling for diversity
+                                                          temperature=1.2,  # Adjust for more varied output
+                                                          top_k=50,        # Control diversity
+                                                          top_p=0.95)[0]['summary_text']
         return abstractive_summary
 
 class SummaryApp:
@@ -85,9 +91,17 @@ class SummaryApp:
             extractive = self.summarizer.extractive_summary(input_data)
             self.extractive_text.insert(tk.END, extractive)
 
-            # Generate abstractive summary
-            abstractive = self.summarizer.abstractive_summary(extractive)
-            self.abstractive_text.insert(tk.END, abstractive)
+            # Check the length of the input and extractive summary
+            if len(input_data.split()) > 5 and len(extractive.split()) > 5:  # Ensure sufficient length
+                # Generate abstractive summary
+                abstractive = self.summarizer.abstractive_summary(extractive)
+
+                # Check if the abstractive summary is similar to the extractive summary
+                if abstractive.strip() == extractive.strip():
+                    abstractive = "The abstractive summary is too similar to the extractive summary."
+                self.abstractive_text.insert(tk.END, abstractive)
+            else:
+                self.abstractive_text.insert(tk.END, "Input text is too short for meaningful abstractive summarization.")
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred: {e}")
 
