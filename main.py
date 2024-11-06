@@ -22,21 +22,23 @@ class Summarizer:
         extractive_summary = " ".join([sentences[i] for i in sorted(summary_indices)])
         return extractive_summary
 
-    def abstractive_summary(self, extractive_summary):
-        abstractive_summary = self.abstractive_summarizer(extractive_summary, 
-                                                          max_length=150, 
-                                                          min_length=100, 
-                                                          do_sample=True,  # Use sampling for diversity
-                                                          temperature=1.2,  # Adjust for more varied output
-                                                          top_k=50,        # Control diversity
-                                                          top_p=0.95)[0]['summary_text']
+    def abstractive_summary(self, extractive_summary, max_length):
+        abstractive_summary = self.abstractive_summarizer(
+            extractive_summary,
+            max_length=max_length,
+            min_length=max_length - 20,
+            do_sample=True,
+            temperature=1.2,
+            top_k=50,
+            top_p=0.95
+        )[0]['summary_text']
         return abstractive_summary
 
 class SummaryApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Text Summarizer")
-        self.root.geometry("700x600")
+        self.root.geometry("700x700")
         self.root.configure(bg="#f0f0f0")  # Light gray background
 
         # Custom font
@@ -46,25 +48,32 @@ class SummaryApp:
         # Summarizer object
         self.summarizer = Summarizer()
 
-        # Title Label
+
         title_label = tk.Label(root, text="Text Summarizer", font=self.title_font, bg="#f0f0f0")
         title_label.pack(pady=10)
 
-        # Input text field
         tk.Label(root, text="Input Text:", font=self.label_font, bg="#f0f0f0").pack()
         self.input_text = scrolledtext.ScrolledText(root, wrap=tk.WORD, width=80, height=10)
         self.input_text.pack(pady=5)
 
-        # Button to generate summary
+
+        tk.Label(root, text="Extractive Summary Lines:", font=self.label_font, bg="#f0f0f0").pack()
+        self.extractive_lines = tk.Entry(root, width=10)
+        self.extractive_lines.pack(pady=5)
+        self.extractive_lines.insert(0, "3")  # Default to 3 lines
+
+        tk.Label(root, text="Abstractive Summary Lines (approx.):", font=self.label_font, bg="#f0f0f0").pack()
+        self.abstractive_lines = tk.Entry(root, width=10)
+        self.abstractive_lines.pack(pady=5)
+        self.abstractive_lines.insert(0, "3")  # Default to 3 lines
+
         self.summarize_button = tk.Button(root, text="Generate Summaries", command=self.generate_summaries, bg="#4CAF50", fg="white", font=self.label_font)
         self.summarize_button.pack(pady=10)
 
-        # Extractive summary output
         tk.Label(root, text="Extractive Summary:", font=self.label_font, bg="#f0f0f0").pack()
         self.extractive_text = scrolledtext.ScrolledText(root, wrap=tk.WORD, width=80, height=5, state='disabled')
         self.extractive_text.pack(pady=5)
 
-        # Abstractive summary output
         tk.Label(root, text="Abstractive Summary:", font=self.label_font, bg="#f0f0f0").pack()
         self.abstractive_text = scrolledtext.ScrolledText(root, wrap=tk.WORD, width=80, height=5, state='disabled')
         self.abstractive_text.pack(pady=5)
@@ -87,16 +96,20 @@ class SummaryApp:
             return
 
         try:
+            # Get user-specified line counts
+            extractive_lines = int(self.extractive_lines.get())
+            abstractive_lines = int(self.abstractive_lines.get())
+            max_length_abstractive = abstractive_lines * 20  # Approximate max length per line
+
             # Generate extractive summary
-            extractive = self.summarizer.extractive_summary(input_data)
+            extractive = self.summarizer.extractive_summary(input_data, num_sentences=extractive_lines)
             self.extractive_text.insert(tk.END, extractive)
 
-            # Check the length of the input and extractive summary
-            if len(input_data.split()) > 5 and len(extractive.split()) > 5:  # Ensure sufficient length
-                # Generate abstractive summary
-                abstractive = self.summarizer.abstractive_summary(extractive)
+            # Generate abstractive summary
+            if len(extractive.split()) > 5:  # Ensure sufficient length
+                abstractive = self.summarizer.abstractive_summary(extractive, max_length=max_length_abstractive)
 
-                # Check if the abstractive summary is similar to the extractive summary
+                # Check similarity and output
                 if abstractive.strip() == extractive.strip():
                     abstractive = "The abstractive summary is too similar to the extractive summary."
                 self.abstractive_text.insert(tk.END, abstractive)
@@ -112,12 +125,11 @@ class SummaryApp:
     def show_help(self):
         help_message = ("To use this summarization tool:\n\n"
                         "1. Enter the text you want to summarize in the 'Input Text' area.\n"
-                        "2. Click on 'Generate Summaries'.\n"
-                        "3. The extractive and abstractive summaries will be displayed below.\n"
-                        "4. You can copy the summaries from the output areas.")
+                        "2. Specify the number of lines for extractive and abstractive summaries.\n"
+                        "3. Click on 'Generate Summaries'.\n"
+                        "4. The summaries will appear below, which you can copy.")
         messagebox.showinfo("Help", help_message)
 
-# Run the application
 root = tk.Tk()
 app = SummaryApp(root)
 root.mainloop()
